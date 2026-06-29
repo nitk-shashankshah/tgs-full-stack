@@ -68,9 +68,9 @@ module containerApp './core/host/containerapp.bicep' = {
     tags: union(tags, { 'azd-service-name': 'web' })
     containerAppsEnvironmentId: containerAppsEnvironment.outputs.id
     containerRegistryLoginServer: containerRegistry.outputs.loginServer
-    secrets: {
-      'anthropic-api-key': anthropicApiKey
-    }
+    secrets: [
+      { name: 'anthropic-api-key', value: anthropicApiKey }
+    ]
     env: union(
       [
         { name: 'ANTHROPIC_API_KEY', secretRef: 'anthropic-api-key' }

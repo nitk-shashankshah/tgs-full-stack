@@ -8,8 +8,7 @@ param containerRegistryLoginServer string
 param imageName string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 param targetPort int = 8000
 param env array = []
-@secure()
-param secrets object = {}
+param secrets array = []
 param cpu string = '0.5'
 param memory string = '1.0Gi'
 
@@ -23,10 +22,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   properties: {
     managedEnvironmentId: containerAppsEnvironmentId
     configuration: {
-      secrets: [for secret in objectKeys(secrets): {
-        name: secret
-        value: secrets[secret]
-      }]
+      secrets: secrets
       ingress: {
         external: true
         targetPort: targetPort
