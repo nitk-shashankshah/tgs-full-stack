@@ -1,0 +1,29 @@
+# Secrets — never deploy/commit the API key. Set it as an App Service app setting instead.
+.env
+
+# azd / Azure local state
+.azure/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+
+# OS
+.DS_Store
+
+# Large local input artifacts — NOT used by the app at runtime (it only reads/writes ./data).
+# Keeping these out of the deployment package keeps it small and fast.
+catalogs/
+curated/
+price_lists/
+
+# The reference quickstart template — not part of this app.
+fastapi-quickstart/
+
+# Previous backup
+backend_bak/
