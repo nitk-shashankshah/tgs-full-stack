@@ -1,7 +1,6 @@
 targetScope = 'subscription'
 
-// Provisions the Azure resources for the TGS backend (FastAPI on App Service).
-// Adapted from the msdocs-python-fastapi-webapp-quickstart azd template.
+// Provisions the Azure resources for the TGS backend (FastAPI on Container Apps).
 
 @minLength(1)
 @maxLength(64)
@@ -12,19 +11,15 @@ param environmentName string
 @description('Primary location for all resources')
 param location string
 
-// Optional parameters to override the default azd resource naming conventions.
 param resourceGroupName string = ''
-param appServiceName string = ''
-param appServicePlanName string = ''
-
-@description('App Service plan SKU. B1 (Basic) is recommended for the PDF/LLM workload; F1 (Free) has tight CPU/memory limits and does not support Always On.')
-param appServiceSku string = 'B1'
+param containerAppName string = ''
+param containerRegistryName string = ''
 
 @secure()
 @description('Anthropic API key, injected as the ANTHROPIC_API_KEY app setting.')
 param anthropicApiKey string
 
-@description('Comma-separated list of extra browser origins allowed by CORS (e.g. your deployed frontend URL). Optional.')
+@description('Comma-separated list of extra browser origins allowed by CORS. Optional.')
 param allowedOrigins string = ''
 
 var abbrs = loadJsonContent('./abbreviations.json')
@@ -35,56 +30,68 @@ var tags = {
 
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 
-// Always On is not supported on the Free (F1) tier.
-var enableAlwaysOn = appServiceSku != 'F1'
+// AcrPull built-in role
+var acrPullRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
 
-// Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: !empty(resourceGroupName) ? resourceGroupName : '${abbrs.resourcesResourceGroups}${environmentName}'
   location: location
   tags: tags
 }
 
-// The application App Service
-module web './core/host/appservice.bicep' = {
-  name: 'web'
+module containerRegistry './core/host/containerregistry.bicep' = {
+  name: 'containerregistry'
   scope: rg
   params: {
-    name: !empty(appServiceName) ? appServiceName : '${abbrs.webSitesAppService}web-${resourceToken}'
+    name: !empty(containerRegistryName) ? containerRegistryName : '${abbrs.containerRegistryRegistries}${resourceToken}'
     location: location
-    appServicePlanId: appServicePlan.outputs.id
-    runtimeName: 'python'
-    runtimeVersion: '3.13'
-    appCommandLine: 'gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --timeout 600 --bind 0.0.0.0:8000'
-    scmDoBuildDuringDeployment: true
-    alwaysOn: enableAlwaysOn
-    healthCheckPath: '/health'
-    appSettings: union(
-      {
-        ANTHROPIC_API_KEY: anthropicApiKey
-        // Give Oryx/container extra time to start under the heavier deps.
-        WEBSITES_CONTAINER_START_TIME_LIMIT: '600'
-      },
-      empty(allowedOrigins) ? {} : { ALLOWED_ORIGINS: allowedOrigins }
-    )
-    tags: union(tags, { 'azd-service-name': 'web' })
+    tags: tags
   }
 }
 
-// App Service Plan
-module appServicePlan './core/host/appserviceplan.bicep' = {
-  name: 'appserviceplan'
+module containerAppsEnvironment './core/host/containerapps-environment.bicep' = {
+  name: 'containerapps-environment'
   scope: rg
   params: {
-    name: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
+    name: '${abbrs.appManagedEnvironments}${resourceToken}'
     location: location
     tags: tags
-    sku: {
-      name: appServiceSku
+  }
+}
+
+module containerApp './core/host/containerapp.bicep' = {
+  name: 'web'
+  scope: rg
+  params: {
+    name: !empty(containerAppName) ? containerAppName : '${abbrs.appContainerApps}web-${resourceToken}'
+    location: location
+    tags: union(tags, { 'azd-service-name': 'web' })
+    containerAppsEnvironmentId: containerAppsEnvironment.outputs.id
+    containerRegistryLoginServer: containerRegistry.outputs.loginServer
+    secrets: {
+      'anthropic-api-key': anthropicApiKey
     }
+    env: union(
+      [
+        { name: 'ANTHROPIC_API_KEY', secretRef: 'anthropic-api-key' }
+        { name: 'WEBSITES_CONTAINER_START_TIME_LIMIT', value: '600' }
+      ],
+      empty(allowedOrigins) ? [] : [{ name: 'ALLOWED_ORIGINS', value: allowedOrigins }]
+    )
+  }
+}
+
+module acrPull './core/security/role.bicep' = {
+  name: 'acrPull'
+  scope: rg
+  params: {
+    principalId: containerApp.outputs.identityPrincipalId
+    roleDefinitionId: acrPullRoleId
   }
 }
 
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
-output WEB_URI string = web.outputs.uri
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
+output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
+output WEB_URI string = containerApp.outputs.uri

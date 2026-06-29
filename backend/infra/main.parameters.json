@@ -8,9 +8,6 @@
       "location": {
         "value": "${AZURE_LOCATION}"
       },
-      "appServiceSku": {
-        "value": "${APP_SERVICE_SKU=B1}"
-      },
       "anthropicApiKey": {
         "value": "${ANTHROPIC_API_KEY}"
       },

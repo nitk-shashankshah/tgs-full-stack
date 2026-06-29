@@ -1,0 +1,7 @@
+.azure/
+.venv/
+__pycache__/
+*.pyc
+fastapi-quickstart/
+.git/
+.gitignore

@@ -6,4 +6,6 @@ services:
   web:
     project: .
     language: python
-    host: appservice
+    host: containerapp
+    docker:
+      path: ./Dockerfile
