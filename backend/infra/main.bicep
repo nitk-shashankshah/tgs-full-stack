@@ -30,9 +30,6 @@ var tags = {
 
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 
-// AcrPull built-in role
-var acrPullRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
-
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: !empty(resourceGroupName) ? resourceGroupName : '${abbrs.resourcesResourceGroups}${environmentName}'
   location: location
@@ -68,7 +65,9 @@ module containerApp './core/host/containerapp.bicep' = {
     tags: union(tags, { 'azd-service-name': 'web' })
     containerAppsEnvironmentId: containerAppsEnvironment.outputs.id
     containerRegistryLoginServer: containerRegistry.outputs.loginServer
-    secrets: [
+    containerRegistryUsername: containerRegistry.outputs.adminUsername
+    containerRegistryPassword: containerRegistry.outputs.adminPassword
+    appSecrets: [
       { name: 'anthropic-api-key', value: anthropicApiKey }
     ]
     env: union(
@@ -78,15 +77,6 @@ module containerApp './core/host/containerapp.bicep' = {
       ],
       empty(allowedOrigins) ? [] : [{ name: 'ALLOWED_ORIGINS', value: allowedOrigins }]
     )
-  }
-}
-
-module acrPull './core/security/role.bicep' = {
-  name: 'acrPull'
-  scope: rg
-  params: {
-    principalId: containerApp.outputs.identityPrincipalId
-    roleDefinitionId: acrPullRoleId
   }
 }
 

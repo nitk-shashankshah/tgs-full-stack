@@ -5,10 +5,13 @@ param tags object = {}
 
 param containerAppsEnvironmentId string
 param containerRegistryLoginServer string
+param containerRegistryUsername string
+@secure()
+param containerRegistryPassword string
 param imageName string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 param targetPort int = 8000
 param env array = []
-param secrets array = []
+param appSecrets array = []
 param cpu string = '0.5'
 param memory string = '1.0Gi'
 
@@ -16,13 +19,13 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: name
   location: location
   tags: tags
-  identity: {
-    type: 'SystemAssigned'
-  }
   properties: {
     managedEnvironmentId: containerAppsEnvironmentId
     configuration: {
-      secrets: secrets
+      secrets: concat(
+        [{ name: 'registry-password', value: containerRegistryPassword }],
+        appSecrets
+      )
       ingress: {
         external: true
         targetPort: targetPort
@@ -32,7 +35,8 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
       registries: [
         {
           server: containerRegistryLoginServer
-          identity: 'system'
+          username: containerRegistryUsername
+          passwordSecretRef: 'registry-password'
         }
       ]
     }
@@ -58,4 +62,3 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
 
 output name string = containerApp.name
 output uri string = 'https://${containerApp.properties.configuration.ingress.fqdn}'
-output identityPrincipalId string = containerApp.identity.principalId
