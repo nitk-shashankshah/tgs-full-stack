@@ -47,5 +47,6 @@ module staticWebApp 'core/staticwebapp.bicep' = {
 
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
+output SERVICE_WEB_RESOURCE_ID string = staticWebApp.outputs.id
 output WEB_URI string = staticWebApp.outputs.uri
 output AZURE_STATIC_WEB_APPS_API_TOKEN string = staticWebApp.outputs.deploymentToken

@@ -26,6 +26,7 @@ resource appsettings 'Microsoft.Web/staticSites/config@2022-09-01' = if (!empty(
   properties: appSettings
 }
 
+output id string = staticWebApp.id
 output uri string = 'https://${staticWebApp.properties.defaultHostname}'
 output name string = staticWebApp.name
 output deploymentToken string = staticWebApp.listSecrets().properties.apiKey
