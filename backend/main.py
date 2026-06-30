@@ -262,6 +262,13 @@ async def upload_catalog(file: UploadFile = File(...)):
         # Store first available product image as a catalog-level cover
         first_img = next((p["image"] for p in products if p.get("image")), None)
         cover_image = make_thumbnail(first_img, size=80) if first_img else None
+        # Strip full images before persisting — only thumbnails are kept on disk.
+        # Full images are returned in the upload response for immediate display
+        # but are not stored to avoid filling the container's ephemeral disk.
+        persisted_products = [
+            {k: v for k, v in p.items() if k != "image"}
+            for p in products
+        ]
         catalog_record = {
             "id": catalog_id,
             "file": file.filename,
@@ -270,7 +277,7 @@ async def upload_catalog(file: UploadFile = File(...)):
             "status": "in_review",
             "coverImage": cover_image,
             "supplier": data["supplier"],
-            "products": products,
+            "products": persisted_products,
         }
         write_catalog(catalog_record)
 
@@ -907,6 +914,36 @@ async def generate_brochure(req: BrochureRequest):
     )
 
 
+@app.post("/api/admin/purge-images")
+def purge_stored_images():
+    """Strip full product images from all persisted catalog files to free disk space."""
+    purged, freed_bytes = 0, 0
+    for f in CATALOGS_DIR.glob("*.json"):
+        try:
+            data = json.loads(f.read_text())
+            before = f.stat().st_size
+            changed = False
+            for p in data.get("products", []):
+                if p.get("image"):
+                    del p["image"]
+                    changed = True
+            if changed:
+                f.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+                freed_bytes += before - f.stat().st_size
+                purged += 1
+        except Exception:
+            pass
+    return {"purged_catalogs": purged, "freed_mb": round(freed_bytes / 1024 / 1024, 2)}
+
+
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    import shutil
+    total, used, free = shutil.disk_usage(".")
+    return {
+        "status": "ok",
+        "disk_used_mb": round(used / 1024 / 1024, 1),
+        "disk_free_mb": round(free / 1024 / 1024, 1),
+        "catalogs": len(list(CATALOGS_DIR.glob("*.json"))),
+        "pricelists": len(list(PRICELISTS_DIR.glob("*.json"))),
+    }
