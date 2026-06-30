@@ -12,8 +12,8 @@ param imageName string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:l
 param targetPort int = 8000
 param env array = []
 param appSecrets array = []
-param cpu string = '0.5'
-param memory string = '1.0Gi'
+param cpu string = '1.0'
+param memory string = '2.0Gi'
 
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: name
