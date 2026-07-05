@@ -26,6 +26,10 @@ export function uploadCatalogue(file) {
   return requestJson('/api/catalogues/upload', { method: 'POST', body: formData });
 }
 
+export function getCatalogueDownloadUrl(catalogueId) {
+  return `${API_BASE}/api/catalogues/${catalogueId}/download`;
+}
+
 export function processCatalogue(catalogueId, catalogueS3Url) {
   return requestJson('/api/catalogues/process', {
     method: 'POST',

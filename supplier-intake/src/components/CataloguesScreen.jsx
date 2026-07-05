@@ -62,7 +62,7 @@ function ListView({ catalogs, onOpenCatalog, onGotoUpload }) {
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'minmax(0,2.4fr) minmax(0,1.5fr) 80px 70px 116px 30px',
+        gridTemplateColumns: 'minmax(0,2.4fr) minmax(0,1.5fr) 80px 70px 116px 34px 30px',
         gap: 14, padding: '0 16px 9px',
         fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#9aa0ac',
       }}>
@@ -71,6 +71,7 @@ function ListView({ catalogs, onOpenCatalog, onGotoUpload }) {
         <span>Products</span>
         <span>Pages</span>
         <span>Status</span>
+        <span />
         <span />
       </div>
 
@@ -83,7 +84,7 @@ function ListView({ catalogs, onOpenCatalog, onGotoUpload }) {
               onClick={() => onOpenCatalog(c.id)}
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'minmax(0,2.4fr) minmax(0,1.5fr) 80px 70px 116px 30px',
+                gridTemplateColumns: 'minmax(0,2.4fr) minmax(0,1.5fr) 80px 70px 116px 34px 30px',
                 gap: 14, alignItems: 'center',
                 background: '#fff', border: '1px solid #e7e9ee', borderRadius: 13,
                 padding: '13px 16px', cursor: 'pointer',
@@ -131,6 +132,21 @@ function ListView({ catalogs, onOpenCatalog, onGotoUpload }) {
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: sm.dot }} />
                 {sm.label}
               </span>
+              <a
+                href={api.getCatalogueDownloadUrl(c.id)}
+                download
+                title="Download original brochure"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 30, height: 30, borderRadius: 8, color: '#6a7180',
+                  textDecoration: 'none', fontSize: 15,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#f2f3f6'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                ⬇
+              </a>
               <span style={{ fontSize: 16, color: '#c2c7d0', textAlign: 'right' }}>→</span>
             </div>
           );

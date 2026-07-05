@@ -5,6 +5,7 @@ import time
 import uuid
 import json
 import base64
+import hashlib
 import logging
 import urllib.request
 from urllib.parse import unquote
@@ -312,6 +313,17 @@ async def upload_catalogue(
     if len(file_bytes) > 50 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File exceeds 50 MB limit")
 
+    file_hash = hashlib.sha256(file_bytes).hexdigest()
+    existing = db.query(models.Catalogue).filter(models.Catalogue.file_hash == file_hash).first()
+    if existing:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"This exact file was already uploaded as catalogue {existing.id} "
+                f"(supplier: {existing.supplier_id}, uploaded: {existing.uploaded_at})."
+            ),
+        )
+
     if supplier_id:
         supplier = db.query(models.Supplier).filter(models.Supplier.id == supplier_id).first()
         if not supplier:
@@ -327,6 +339,7 @@ async def upload_catalogue(
     catalogue = models.Catalogue(
         catalogue_file_name=file.filename,
         catalogue_s3_url=blob_url,
+        file_hash=file_hash,
         supplier_id=supplier.id,
         status="Uploaded",
         category=category,
@@ -542,6 +555,22 @@ def get_catalogue(catalogue_id: str, db: Session = Depends(get_db)):
         .all()
     )
     return _catalogue_to_summary(catalogue, products)
+
+
+@app.get("/api/catalogues/{catalogue_id}/download")
+def download_catalogue(catalogue_id: str, db: Session = Depends(get_db)):
+    catalogue = db.query(models.Catalogue).filter(models.Catalogue.id == catalogue_id).first()
+    if not catalogue:
+        raise HTTPException(status_code=404, detail="Catalogue not found")
+    if not catalogue.catalogue_s3_url:
+        raise HTTPException(status_code=404, detail="No original file stored for this catalogue")
+
+    pdf_bytes = download_bytes(catalogue.catalogue_s3_url)
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{catalogue.catalogue_file_name}"'},
+    )
 
 
 @app.patch("/api/catalogues/{catalogue_id}")

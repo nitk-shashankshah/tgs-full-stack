@@ -42,6 +42,7 @@ class Catalogue(Base):
     id                     = Column(String(36), primary_key=True, default=_default_uuid)
     catalogue_file_name    = Column(String(255), nullable=False)
     catalogue_s3_url       = Column(Text)
+    file_hash              = Column(String(64), unique=True, index=True, nullable=True)
     supplier_id            = Column(String(36), ForeignKey("suppliers.id"), nullable=False)
     status                 = Column(String(20), default="Uploaded")   # Uploaded | Processed
     category               = Column(String(100))
