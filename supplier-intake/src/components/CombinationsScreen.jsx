@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
+import * as api from '../api';
 
 const EXAMPLES = [
   'I want to create a gift hamper for ₹5000',
@@ -24,16 +23,7 @@ export default function CombinationsScreen() {
     setResult(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/combinations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: text }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: 'Request failed' }));
-        throw new Error(err.detail || 'Request failed');
-      }
-      setResult(await res.json());
+      setResult(await api.findCombinations(text));
     } catch (err) {
       setError(err.message || 'Something went wrong');
     } finally {
@@ -183,27 +173,21 @@ function CombinationCard({ combo, budget, currency, index }) {
   async function handleGenerateBrochure() {
     setGenerating(true);
     try {
-      const res = await fetch(`${API_BASE}/api/generate-brochure`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: combo.title,
-          description: combo.description ?? '',
-          currency: combo.currency ?? currency,
-          total: combo.total,
-          products: (combo.products ?? []).map((p) => ({
-            name: p.name,
-            price: p.price,
-            currency: p.currency ?? combo.currency ?? currency,
-            quantity: p.quantity ?? 1,
-            supplier: p.supplier ?? '',
-            categories: p.categories ?? [],
-            thumbnail: p.thumbnail ?? null,
-          })),
-        }),
+      const blob = await api.generateBrochure({
+        title: combo.title,
+        description: combo.description ?? '',
+        currency: combo.currency ?? currency,
+        total: combo.total,
+        products: (combo.products ?? []).map((p) => ({
+          name: p.name,
+          price: p.price,
+          currency: p.currency ?? combo.currency ?? currency,
+          quantity: p.quantity ?? 1,
+          supplier: p.supplier ?? '',
+          categories: p.categories ?? [],
+          thumbnail: p.thumbnail ?? null,
+        })),
       });
-      if (!res.ok) throw new Error('Failed to generate brochure');
-      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

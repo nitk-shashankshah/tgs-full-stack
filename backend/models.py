@@ -25,6 +25,9 @@ class Supplier(Base):
     phone_number      = Column(String(20))
     email             = Column(String(255))
     gst_number        = Column(String(20))
+    contact_person    = Column(String(255))
+    terms             = Column(String(255))
+    confidence        = Column(JSON)   # per-field confidence: {name, contact, email, phone, location, terms}
     created_at        = Column(DateTime, default=datetime.utcnow)
     updated_at        = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -45,6 +48,8 @@ class Catalogue(Base):
     type                   = Column(String(30), nullable=False, default="Product Catalogue")
     reference_catalogue_id = Column(String(36), ForeignKey("catalogues.id"), nullable=True)
     raw_extraction         = Column(Text)    # raw Claude JSON response stored as string
+    page_count             = Column(Integer)
+    cover_image            = Column(Text)    # base64 data URI thumbnail of first product image
     uploaded_at            = Column(DateTime, default=datetime.utcnow)
     created_at             = Column(DateTime, default=datetime.utcnow)
     updated_at             = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -73,6 +78,11 @@ class TempProduct(Base):
     features       = Column(JSON)
     ideal_keywords = Column(JSON)
     source_page    = Column(Integer)
+    currency       = Column(String(5), default="₹")
+    moq            = Column(String(50))
+    lead_time      = Column(String(50))
+    thumbnail      = Column(Text)   # base64 data URI
+    confidence     = Column(JSON)   # per-field confidence: {name, sku, price, moq, specs}
     raw_json       = Column(JSON)   # full product JSON from Claude extraction
     status         = Column(String(10), default="Active")   # Active | Inactive
     created_at     = Column(DateTime, default=datetime.utcnow)
@@ -108,6 +118,11 @@ class Product(Base):
     features       = Column(JSON)
     ideal_keywords = Column(JSON)
     source_page    = Column(Integer)
+    currency       = Column(String(5), default="₹")
+    moq            = Column(String(50))
+    lead_time      = Column(String(50))
+    thumbnail      = Column(Text)   # base64 data URI
+    confidence     = Column(JSON)   # per-field confidence: {name, sku, price, moq, specs}
     embedding      = Column(Text)   # JSON string; replaced with Vector(1024) on PostgreSQL
     created_at     = Column(DateTime, default=datetime.utcnow)
     updated_at     = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -132,3 +147,15 @@ class CategoryDetails(Base):
     sub_categories = Column(JSON)
     created_at     = Column(DateTime, default=datetime.utcnow)
     updated_at     = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class PriceList(Base):
+    """A single price-list PDF upload and the catalogue product updates it produced."""
+    __tablename__ = "price_lists"
+
+    id                 = Column(String(36), primary_key=True, default=_default_uuid)
+    file_name          = Column(String(255), nullable=False)
+    supplier_name      = Column(String(255))
+    products_extracted = Column(Integer, default=0)
+    updates            = Column(JSON)   # list of {catalogueId, catalogueFile, productId, productName, oldPrice, newPrice, currency, matchType}
+    uploaded_at        = Column(DateTime, default=datetime.utcnow)

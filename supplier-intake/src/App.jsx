@@ -9,8 +9,7 @@ import PriceListsScreen from './components/PriceListsScreen';
 import CombinationsScreen from './components/CombinationsScreen';
 import ExportModal from './components/ExportModal';
 import { PROCESSING_STEPS } from './data/catalogs';
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
+import * as api from './api';
 
 function relativeDate(ts) {
   const diff = Date.now() - ts;
@@ -42,10 +41,7 @@ export default function App() {
   const timerRef = useRef(null);
 
   function reloadCatalogs() {
-    fetch(`${API_BASE}/api/catalogs`)
-      .then((r) => r.json())
-      .then(setCatalogs)
-      .catch(() => {});
+    api.listCatalogues().then(setCatalogs).catch(() => {});
   }
 
   // Load catalog list from backend on mount
@@ -74,25 +70,19 @@ export default function App() {
     try {
       if (!isFile) throw new Error('Please select a real PDF file to upload.');
 
-      const formData = new FormData();
-      formData.append('file', fileOrName);
-      const res = await fetch(`${API_BASE}/api/upload-catalog`, { method: 'POST', body: formData });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
-        throw new Error(err.detail || 'Upload failed');
-      }
-      const result = await res.json();
+      const upload = await api.uploadCatalogue(fileOrName);
+      const result = await api.processCatalogue(upload.catalogue_id, upload.catalogue_s3_url);
 
-      currentCatalogIdRef.current = result.catalogId;
+      currentCatalogIdRef.current = upload.catalogue_id;
 
       // Add the new catalog to the library list (full images stripped, thumbnails kept)
       const newEntry = {
-        id: result.catalogId,
-        file: result.fileName,
+        id: upload.catalogue_id,
+        file: upload.file_name,
         uploadedAt: Date.now(),
-        pageCount: result.pageCount,
+        pageCount: result.page_count,
         status: 'in_review',
-        coverImage: result.coverImage ?? null,
+        coverImage: result.cover_image ?? null,
         supplier: {
           name: result.supplier.name || '',
           location: result.supplier.location || '',
@@ -118,16 +108,13 @@ export default function App() {
 
   async function handleApprove() {
     if (currentCatalogIdRef.current) {
-      await fetch(`${API_BASE}/api/catalogs/${currentCatalogIdRef.current}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'reviewed' }),
-      }).catch(() => {});
-      setCatalogs((prev) =>
-        prev.map((c) =>
-          c.id === currentCatalogIdRef.current ? { ...c, status: 'reviewed' } : c
-        )
-      );
+      try {
+        await api.addTempProducts(currentCatalogIdRef.current, products);
+        await api.updateCatalogueStatus(currentCatalogIdRef.current, 'reviewed');
+      } catch {
+        // best-effort — the catalogue stays in its current state if this fails
+      }
+      reloadCatalogs();
     }
     setExported(true);
   }

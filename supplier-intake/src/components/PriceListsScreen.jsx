@@ -1,6 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
+import * as api from '../api';
 
 function relativeDate(ts) {
   const diff = Date.now() - ts;
@@ -23,10 +22,7 @@ export default function PriceListsScreen({ onPricesUpdated }) {
   const [history, setHistory] = useState([]);        // all past price list uploads
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/pricelists`)
-      .then((r) => r.json())
-      .then(setHistory)
-      .catch(() => {});
+    api.listPriceLists().then(setHistory).catch(() => {});
   }, []);
 
   async function handleFile(file) {
@@ -40,14 +36,7 @@ export default function PriceListsScreen({ onPricesUpdated }) {
     setProcessingFile(file.name);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch(`${API_BASE}/api/upload-pricelist`, { method: 'POST', body: formData });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
-        throw new Error(err.detail || 'Upload failed');
-      }
-      const data = await res.json();
+      const data = await api.uploadPriceList(file);
       setResult(data);
       setHistory((prev) => [data, ...prev]);
       if (data.updates?.length > 0) onPricesUpdated?.();

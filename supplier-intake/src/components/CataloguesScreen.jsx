@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
+import * as api from '../api';
 
 function statusMeta(status) {
   return status === 'reviewed'
@@ -15,8 +14,7 @@ export default function CataloguesScreen({ catalogs, openCatalogId, onOpenCatalo
   useEffect(() => {
     if (!openCatalogId) { setFullCatalog(null); return; }
     setLoading(true);
-    fetch(`${API_BASE}/api/catalogs/${openCatalogId}`)
-      .then((r) => r.json())
+    api.getCatalogue(openCatalogId)
       .then((data) => { setFullCatalog(data); setLoading(false); })
       .catch(() => {
         // fallback to slim catalog from props
