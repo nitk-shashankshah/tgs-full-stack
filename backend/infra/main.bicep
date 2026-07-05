@@ -22,6 +22,17 @@ param anthropicApiKey string
 @description('Comma-separated list of extra browser origins allowed by CORS. Optional.')
 param allowedOrigins string = ''
 
+@secure()
+@description('Postgres connection string, injected as the DATABASE_URL app setting.')
+param databaseUrl string
+
+@secure()
+@description('Azure Blob Storage connection string, injected as the AZURE_STORAGE_CONNECTION_STRING app setting.')
+param storageConnectionString string
+
+@description('Blob container name for uploaded catalogues.')
+param storageContainerName string = 'tgscatalogs'
+
 var abbrs = loadJsonContent('./abbreviations.json')
 
 var tags = {
@@ -69,10 +80,15 @@ module containerApp './core/host/containerapp.bicep' = {
     containerRegistryPassword: containerRegistry.outputs.adminPassword
     appSecrets: [
       { name: 'anthropic-api-key', value: anthropicApiKey }
+      { name: 'database-url', value: databaseUrl }
+      { name: 'storage-connection-string', value: storageConnectionString }
     ]
     env: union(
       [
         { name: 'ANTHROPIC_API_KEY', secretRef: 'anthropic-api-key' }
+        { name: 'DATABASE_URL', secretRef: 'database-url' }
+        { name: 'AZURE_STORAGE_CONNECTION_STRING', secretRef: 'storage-connection-string' }
+        { name: 'AZURE_CONTAINER_NAME', value: storageContainerName }
         { name: 'WEBSITES_CONTAINER_START_TIME_LIMIT', value: '600' }
       ],
       empty(allowedOrigins) ? [] : [{ name: 'ALLOWED_ORIGINS', value: allowedOrigins }]

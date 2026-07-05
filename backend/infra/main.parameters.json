@@ -13,6 +13,15 @@
       },
       "allowedOrigins": {
         "value": "${ALLOWED_ORIGINS=}"
+      },
+      "databaseUrl": {
+        "value": "${DATABASE_URL}"
+      },
+      "storageConnectionString": {
+        "value": "${AZURE_STORAGE_CONNECTION_STRING}"
+      },
+      "storageContainerName": {
+        "value": "${AZURE_CONTAINER_NAME=tgscatalogs}"
       }
     }
 }
