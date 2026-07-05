@@ -33,6 +33,9 @@ param storageConnectionString string
 @description('Blob container name for uploaded catalogues.')
 param storageContainerName string = 'tgscatalogs'
 
+@description('Container image to deploy. Preserves the last image deployed by azd deploy across infra-only provisions.')
+param webImageName string = ''
+
 var abbrs = loadJsonContent('./abbreviations.json')
 
 var tags = {
@@ -78,6 +81,7 @@ module containerApp './core/host/containerapp.bicep' = {
     containerRegistryLoginServer: containerRegistry.outputs.loginServer
     containerRegistryUsername: containerRegistry.outputs.adminUsername
     containerRegistryPassword: containerRegistry.outputs.adminPassword
+    imageName: empty(webImageName) ? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest' : webImageName
     appSecrets: [
       { name: 'anthropic-api-key', value: anthropicApiKey }
       { name: 'database-url', value: databaseUrl }

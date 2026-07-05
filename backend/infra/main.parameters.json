@@ -22,6 +22,9 @@
       },
       "storageContainerName": {
         "value": "${AZURE_CONTAINER_NAME=tgscatalogs}"
+      },
+      "webImageName": {
+        "value": "${SERVICE_WEB_IMAGE_NAME=}"
       }
     }
 }
