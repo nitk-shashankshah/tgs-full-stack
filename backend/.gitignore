@@ -1,5 +1,12 @@
 # Secrets — never deploy/commit the API key. Set it as an App Service app setting instead.
 .env
+.env_bak
+.env.*
+
+# Local dev DB / storage fallback (used when DATABASE_URL / AZURE_STORAGE_CONNECTION_STRING
+# in .env are still placeholders — see start_backend.sh)
+dev.db
+test_output/
 
 # azd / Azure local state
 .azure/
