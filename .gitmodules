@@ -1,0 +1,3 @@
+[submodule "tgs-website"]
+	path = tgs-website
+	url = https://github.com/nitk-shashankshah/tgs-b2b.git

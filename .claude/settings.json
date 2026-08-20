@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(node --experimental-vm-modules -e ' *)",
+      "Bash(curl -s -I \"https://tgsb2bwebsiteassets.blob.core.windows.net/assets/gift-kits/All%20Brochures/Modern%20Gifting%20Solutions.pdf\")",
+      "Bash(curl -s -I \"https://tgsb2bwebsiteassets.blob.core.windows.net/assets/gift-kits/All Brochures/Modern%20Gifting%20Solutions.pdf\")"
+    ]
+  }
+}
